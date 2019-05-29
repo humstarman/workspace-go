@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	docker = flag.Bool("d", false, "Force to boot as a new node")
+	docker = flag.Bool("d", true, "Force to boot as a new node")
 )
 
 func init() {
