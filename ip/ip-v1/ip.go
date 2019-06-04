@@ -106,22 +106,24 @@ func GetIpByInterface(name string) ([]string, error) {
 	return ips, nil
 }
 
-func getIntranetIp() ([]string, error) {
-	var ips []string
+func getIntranetIp() ([]*net.IPNet, error) {
+	var ipnets []*net.IPNet
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		os.Exit(1)
 	}
-	for _, address := range addrs {
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				ips = append(ips, fmt.Sprintf("%v", ipnet.IP.To4()))
-			}
 
+	for _, addr := range addrs {
+		//fmt.Println(addr)
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			//fmt.Println("IP: ", ipnet.IP.String())
+			//fmt.Println("Mask: ", addr.(*net.IPNet).Mask)
+			ipnets = append(ipnets, ipnet)
 		}
+		//fmt.Println("---")
 	}
-	return ips, nil
+	return ipnets, nil
 }
 
 func GetIntranetIP(inVagrnt bool) []*net.IPNet {
@@ -134,7 +136,7 @@ func GetIntranetIP(inVagrnt bool) []*net.IPNet {
 
 	for _, addr := range addrs {
 		//fmt.Println(addr)
-		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil && !IsDocker0(ipnet) && !IsVagrant(ipnet, inVagrnt) && !IsMaskEmpty(ipnet) && !IsFlannel(ipnet) && !IsCalico(ipnet) && !IsTunl(ipnet) && !IsVirtual(ipnet) && !IsBridge(ipnet) {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil && !IsDocker0(ipnet) && !IsVagrant(ipnet) && !IsMaskEmpty(ipnet) && !IsFlannel(ipnet) && !IsCalico(ipnet) && !IsTunl(ipnet) && !IsVirtual(ipnet) && !IsBridge(ipnet) {
 			//fmt.Println("IP: ", ipnet.IP.String())
 			//fmt.Println("Mask: ", addr.(*net.IPNet).Mask)
 			ipnets = append(ipnets, ipnet)
