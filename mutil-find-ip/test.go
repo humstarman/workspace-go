@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 func main() {
 	ip := "192.168.100.167"
-	mask := 27 
+	mask := 27
 	batch := 11
 	cidr := fmt.Sprintf("%v/%v", ip, mask)
 	n := getCidrHostNum(mask)
@@ -29,25 +32,35 @@ func looper2(cidr string, batch int) {
 	fmt.Printf("seg2 from %v to %v\n", seg2MinIp, seg2MaxIp)
 	fmt.Printf("seg3 from %v to %v\n", seg3MinIp, seg3MaxIp)
 	fmt.Printf("seg4 from %v to %v\n", seg4MinIp, seg4MaxIp)
+	var wg sync.WaitGroup
 	for i := seg2MinIp; i <= seg2MaxIp; i++ {
 		for j := seg3MinIp; j <= seg3MaxIp; j++ {
-			/**for k := seg4MinIp; k <= seg4MaxIp; k++ {
-				tmp := fmt.Sprintf("%v.%v.%v.%v", ipSegs[0], i, j, k)
-				fmt.Println(tmp)
-			}**/
 			total := seg4MaxIp - seg4MinIp + 1
 			b := total / batch
 			r := total % batch
 			for k := 0; k < b; k++ {
+				runtime.GOMAXPROCS(batch)
+				wg.Add(batch)
 				for l := 0; l < batch; l++ {
-					tmp := fmt.Sprintf("%v.%v.%v.%v", ipSegs[0], i, j, k*batch+seg4MinIp+l)
-					fmt.Println(tmp)
+					go func(l int) {
+						defer wg.Done()
+						tmp := fmt.Sprintf("%v.%v.%v.%v", ipSegs[0], i, j, k*batch+seg4MinIp+l)
+						fmt.Println(tmp)
+					}(l)
 				}
+				wg.Wait()
+				time.Sleep(2 * time.Second)
 			}
+			runtime.GOMAXPROCS(r)
+			wg.Add(r)
 			for k := 0; k < r; k++ {
-				tmp := fmt.Sprintf("%v.%v.%v.%v", ipSegs[0], i, j, b*batch+k+seg4MinIp)
-				fmt.Println(tmp)
+				go func(k int) {
+					defer wg.Done()
+					tmp := fmt.Sprintf("%v.%v.%v.%v", ipSegs[0], i, j, b*batch+k+seg4MinIp)
+					fmt.Println(tmp)
+				}(k)
 			}
+			wg.Wait()
 		}
 	}
 	fmt.Printf("seg2 from %v to %v\n", seg2MinIp, seg2MaxIp)
